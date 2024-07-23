@@ -9,15 +9,12 @@ app.config['SQLALCHEMY_DATABASE_URI'] ='sqlite:///test.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-
 class UserModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     posts = db.relationship('PostModel', backref='author', lazy=True)
     def __repr__(self):
          return self.username
-  
-
 
 class PostModel(db.Model):
      id = db.Column(db.Integer, primary_key=True)
@@ -25,14 +22,13 @@ class PostModel(db.Model):
      content = db.Column(db.String(200), nullable=False)
      created_at = db.Column(db.DateTime, nullable=False, default = lambda: datetime.now(timezone.utc))
      user_id = db.Column(db.Integer, db.ForeignKey('user_model.id'), nullable=False)
-    
+
 
      def __repr__(self):
           return self.title
 
 users_args = reqparse.RequestParser()
 users_args.add_argument('username', type=str, required=True, help = 'Username is required')
-
 
 
 posts_args = reqparse.RequestParser()
@@ -53,12 +49,6 @@ postfields = {
      "content": fields.String,
      "created_at": fields.DateTime,
      "author": fields.String(attribute="author.username"),}
-
-
-
-
-
-
 
 
 class Users(Resource):
@@ -131,10 +121,40 @@ class Posts(Resource):
           db.session.commit()
           return new_post, 201
      
+class Post(Resource):
+      @marshal_with(postfields)
+      def get(self,id):
+         post = PostModel.query.filter_by(id=id).first()
+         if not post:
+              abort(404, message="Post with ID (id) doesn't exist")
+         return post, 200
+      #update post
+      @marshal_with(postfields)
+      def patch(self, id):
+           args = posts_args.parse_args()
+           post = PostModel.query.filter_by(id=id).first()
+           if not post:
+              abort(404, message="Post with ID (id) doesn't exist")
+           post.title = args['title']
+           post.content = args['content']
+           db.session.commit()
+           return post, 200
+      #delete post
+      @marshal_with(postfields)
+      def delete(self, id):
+          post = PostModel.query.filter_by(id=id).first()
+          if not post:
+              abort(404, message="Post with ID (id) doesn't exist")
+          db.session.delete(post)
+          db.session.commit()
+          posts = PostModel.query.all()
+          return posts, 200
+     
 
 api.add_resource(Users, "/users/")
 api.add_resource(User, "/users/<int:id>/")
 api.add_resource(Posts, "/posts/")
+api.add_resource(Post, "/posts/<int:id>/")
 @app.route('/')
 def home():
     return "Hello world!"
