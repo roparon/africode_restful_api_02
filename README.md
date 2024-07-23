@@ -70,5 +70,3 @@ To contribute to this project, follow these steps:
    git push origin your-feature-branch
    ```
 5. Create a pull request on GitHub to merge your changes into the main repository.
-
-I'm here to help if you have any questions or need further assistance!
